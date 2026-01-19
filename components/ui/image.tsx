@@ -1,0 +1,46 @@
+import type React from "react"
+import { cn } from "@/lib/utils"
+
+interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+  src: string
+  alt: string
+  fill?: boolean
+  priority?: boolean
+  width?: number
+  height?: number
+}
+
+export function Image({
+  src,
+  alt,
+  fill,
+  priority,
+  width,
+  height,
+  className,
+  ...props
+}: ImageProps) {
+  if (fill) {
+    return (
+      <img
+        src={src || "/placeholder.svg"}
+        alt={alt}
+        loading={priority ? "eager" : "lazy"}
+        className={cn("absolute inset-0 w-full h-full", className)}
+        {...props}
+      />
+    )
+  }
+
+  return (
+    <img
+      src={src || "/placeholder.svg"}
+      alt={alt}
+      width={width}
+      height={height}
+      loading={priority ? "eager" : "lazy"}
+      className={className}
+      {...props}
+    />
+  )
+}
