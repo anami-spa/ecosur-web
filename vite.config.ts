@@ -12,7 +12,7 @@ export default defineConfig({
   server: {
     port: 3000,
   },
-  base: "/", // Cambiar a "/nombre-repo/" si usas GitHub Pages con repo específico
+  base: "/ecosur-web/",
   build: {
     outDir: "dist",
     assetsDir: "assets",
