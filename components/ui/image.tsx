@@ -1,5 +1,6 @@
 import type React from "react"
 import { cn } from "@/lib/utils"
+import { asset } from "@/lib/assets"
 
 interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string
@@ -20,10 +21,13 @@ export function Image({
   className,
   ...props
 }: ImageProps) {
+  // Aplicar asset() solo a rutas relativas, no a URLs absolutas
+  const imageSrc = src && !src.startsWith('http') ? asset(src) : src || asset("placeholder.svg")
+
   if (fill) {
     return (
       <img
-        src={src || "/placeholder.svg"}
+        src={imageSrc}
         alt={alt}
         loading={priority ? "eager" : "lazy"}
         className={cn("absolute inset-0 w-full h-full", className)}
@@ -34,7 +38,7 @@ export function Image({
 
   return (
     <img
-      src={src || "/placeholder.svg"}
+      src={imageSrc}
       alt={alt}
       width={width}
       height={height}
