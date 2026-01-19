@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
 import { Mail, Phone, MapPin } from "lucide-react"
+import { asset } from "@/lib/assets"
 
 const footerLinks = [
   { name: "Inicio", href: "/" },
@@ -18,7 +19,7 @@ export function Footer() {
           {/* Columna 1 - Acerca de ECOSUR */}
           <div>
             <Link to="/" className="inline-block mb-6">
-              <img src="/logo-verde.png" alt="ECOSUR Reciclaje" className="h-16 w-auto" />
+              <img src={asset("logo-verde.png")} alt="ECOSUR Reciclaje" className="h-16 w-auto" />
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed mb-6">
               Reciclaje industrial con trazabilidad y cumplimiento. Desde el sur de Chile hacia el mundo.

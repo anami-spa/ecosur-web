@@ -1,3 +1,5 @@
+import { asset } from "@/lib/assets"
+
 interface PageHeaderProps {
   title: string
   description?: string
@@ -25,7 +27,7 @@ export function PageHeader({
       {backgroundImage ? (
         <>
           <img
-            src={backgroundImage || "/placeholder.svg"}
+            src={asset(backgroundImage || "placeholder.svg")}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
           />

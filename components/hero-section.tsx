@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { ArrowRight, Recycle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { gsap } from "gsap"
+import { asset } from "@/lib/assets"
 
 const stats = [
   { value: "15+", label: "Años de experiencia" },
@@ -105,7 +106,7 @@ export function HeroSection() {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: "url('/industrial-metal-recycling-plant-aerial-view-profe.jpg')",
+          backgroundImage: `url('${asset("industrial-metal-recycling-plant-aerial-view-profe.jpg")}')`,
           transform: "translateY(var(--scroll-translate, 0))",
         }}
       >

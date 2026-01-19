@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 import { ArrowRight, Award, Users, Leaf, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { asset } from "@/lib/assets"
 
 const highlights = [
   {
@@ -33,7 +34,7 @@ export function AboutPreview() {
           {/* Image Side */}
           <div className="relative">
             <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl">
-              <img src="/modern-industrial-facility-interior-metal-processi.jpg" alt="Instalaciones ECOSUR" className="absolute inset-0 w-full h-full object-cover" />
+              <img src={asset("modern-industrial-facility-interior-metal-processi.jpg")} alt="Instalaciones ECOSUR" className="absolute inset-0 w-full h-full object-cover" />
             </div>
             {/* Floating Card */}
             <div className="absolute -bottom-8 -right-8 bg-ecosur-dark text-white p-6 rounded-2xl shadow-xl max-w-[200px]">

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { Menu, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/contexts/language-context"
+import { asset } from "@/lib/assets"
 
 const navigation = [
   { key: "nav.about", href: "/quienes-somos" },
@@ -45,7 +46,7 @@ export function Header() {
             aria-label="ECOSUR SPA - Ir al inicio"
           >
             <img
-              src="/logo.png"
+              src={asset("logo.png")}
               alt="ECOSUR Reciclaje"
               className={cn(
                 "w-auto transition-all duration-300",
