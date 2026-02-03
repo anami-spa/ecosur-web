@@ -1,33 +1,65 @@
 import type React from "react"
 import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Mail, Phone, MapPin, Clock, Send, CheckCircle2, Globe } from "lucide-react"
+import { toast } from "sonner"
+import { contactSchema, type ContactFormData } from "@/lib/schemas/contactSchema"
+import { submitContactForm } from "@/lib/services/contactFormService"
 
 const inquiryTypes = [
-  { value: "consulta", label: "Consulta general" },
-  { value: "proveedor", label: "Ser proveedor" },
-  { value: "cotizacion", label: "Solicitar cotización" },
-  { value: "otro", label: "Otro" },
+  { value: "Consulta general", label: "Consulta general" },
+  { value: "Ser proveedor", label: "Ser proveedor" },
+  { value: "Solicitar cotización", label: "Solicitar cotización" },
+  { value: "Otro", label: "Otro" },
 ]
 
 export default function ContactoPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const form = useForm<ContactFormData>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      company: "",
+      subject: "",
+      message: "",
+    },
+  })
+
+  const handleSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true)
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsSubmitted(true)
-    setIsSubmitting(false)
+    try {
+      await submitContactForm(data)
+      setIsSubmitted(true)
+      toast.success("Mensaje enviado", {
+        description: "Nos contactaremos con usted pronto.",
+      })
+      form.reset()
+    } catch (error) {
+      toast.error("Error al enviar", {
+        description: error instanceof Error ? error.message : "Por favor, intente nuevamente.",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const resetForm = () => {
+    setIsSubmitted(false)
+    form.reset()
   }
 
   return (
@@ -148,7 +180,7 @@ export default function ContactoPage() {
                         Gracias por contactarnos. Un representante se comunicará con usted a la brevedad.
                       </p>
                       <Button
-                        onClick={() => setIsSubmitted(false)}
+                        onClick={resetForm}
                         variant="outline"
                         className="border-ecosur-green text-ecosur-green hover:bg-ecosur-green hover:text-white bg-transparent"
                       >
@@ -156,67 +188,123 @@ export default function ContactoPage() {
                       </Button>
                     </div>
                   ) : (
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Nombre completo *</Label>
-                        <Input id="name" placeholder="Su nombre completo" required />
-                      </div>
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
+                        <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Nombre completo *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Su nombre completo" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email *</Label>
-                        <Input id="email" type="email" placeholder="correo@ejemplo.com" required />
-                      </div>
+                        <FormField
+                          control={form.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email *</FormLabel>
+                              <FormControl>
+                                <Input type="email" placeholder="correo@ejemplo.com" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Teléfono *</Label>
-                        <Input id="phone" type="tel" placeholder="+56 9 XXXX XXXX" required />
-                      </div>
+                        <FormField
+                          control={form.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Teléfono *</FormLabel>
+                              <FormControl>
+                                <Input type="tel" placeholder="+56 9 XXXX XXXX" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="company">Empresa (opcional)</Label>
-                        <Input id="company" placeholder="Nombre de su empresa" />
-                      </div>
+                        <FormField
+                          control={form.control}
+                          name="company"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Empresa (opcional)</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Nombre de su empresa" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="subject">Asunto *</Label>
-                        <Select required>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione una opción" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {inquiryTypes.map((type) => (
-                              <SelectItem key={type.value} value={type.value}>
-                                {type.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                        <FormField
+                          control={form.control}
+                          name="subject"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Asunto *</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Seleccione una opción" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {inquiryTypes.map((type) => (
+                                    <SelectItem key={type.value} value={type.value}>
+                                      {type.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="message">Mensaje *</Label>
-                        <Textarea id="message" placeholder="Escriba su mensaje aquí..." rows={5} required />
-                      </div>
+                        <FormField
+                          control={form.control}
+                          name="message"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Mensaje *</FormLabel>
+                              <FormControl>
+                                <Textarea placeholder="Escriba su mensaje aquí..." rows={5} {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                      <Button
-                        type="submit"
-                        size="lg"
-                        className="w-full bg-ecosur-green hover:bg-ecosur-green/90 text-white font-semibold"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <span className="animate-spin mr-2">⏳</span>
-                            Enviando...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="mr-2 h-5 w-5" />
-                            Enviar Mensaje
-                          </>
-                        )}
-                      </Button>
-                    </form>
+                        <Button
+                          type="submit"
+                          size="lg"
+                          className="w-full bg-ecosur-green hover:bg-ecosur-green/90 text-white font-semibold"
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <span className="animate-spin mr-2">⏳</span>
+                              Enviando...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="mr-2 h-5 w-5" />
+                              Enviar Mensaje
+                            </>
+                          )}
+                        </Button>
+                      </form>
+                    </Form>
                   )}
                 </CardContent>
               </Card>

@@ -1,15 +1,18 @@
 import type React from "react"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { FileUpload } from "@/components/ui/file-upload"
 import {
   ShieldCheck,
   Lock,
@@ -17,10 +20,12 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle2,
-  Upload,
-  Plus,
-  X,
+  Mail,
+  Phone,
 } from "lucide-react"
+import { toast } from "sonner"
+import { denunciasSchema, type DenunciasFormData } from "@/lib/schemas/denunciasSchema"
+import { submitDenunciaForm } from "@/lib/services/denunciasFormService"
 
 const guarantees = [
   {
@@ -78,87 +83,46 @@ export default function DenunciasPage() {
   const [trackingCode, setTrackingCode] = useState("")
   const [files, setFiles] = useState<File[]>([])
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const form = useForm<DenunciasFormData>({
+    resolver: zodResolver(denunciasSchema),
+    defaultValues: {
+      email: "",
+      nombre: "",
+      relacion: "",
+      motivo: "",
+      lugar: "",
+      hechos: "",
+      telefono: "",
+      personas: "",
+      fecha: "",
+    },
+  })
+
+  const handleSubmit = async (data: DenunciasFormData) => {
     setIsSubmitting(true)
-
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    const code = `ECO-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
-    setTrackingCode(code)
-    setIsSubmitted(true)
-    setIsSubmitting(false)
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files)
-      setFiles(prev => [...prev, ...newFiles])
+    try {
+      const result = await submitDenunciaForm(data, files)
+      setTrackingCode(result.trackingCode)
+      setIsSubmitted(true)
+      toast.success("Denuncia enviada", {
+        description: `Su código de seguimiento es: ${result.trackingCode}`,
+      })
+      form.reset()
+      setFiles([])
+    } catch (error) {
+      toast.error("Error al enviar denuncia", {
+        description: error instanceof Error ? error.message : "Por favor, intente nuevamente.",
+      })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
-  const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index))
-  }
-
-  const handleCancel = () => {
-    if (window.confirm("¿Está seguro que desea cancelar? Se perderán los datos ingresados.")) {
-      navigate("/")
-    }
-  }
-
-  if (isSubmitted) {
-    return (
-      <>
-        <Header />
-        <main>
-          <PageHeader
-            badge="Confirmación"
-            title="Denuncia Registrada"
-            description="Gracias por su confianza"
-            backgroundImage="/hero-denuncias.jpg"
-            overlayColor="blue"
-          />
-
-          <section className="py-20 bg-white">
-            <div className="mx-auto max-w-xl px-4 sm:px-6 lg:px-8">
-              <Card className="border-ecosur-green/20 shadow-lg">
-                <CardHeader className="text-center">
-                  <div className="mx-auto w-16 h-16 rounded-full bg-ecosur-green/10 flex items-center justify-center mb-4">
-                    <CheckCircle2 className="h-8 w-8 text-ecosur-green" />
-                  </div>
-                  <CardTitle className="text-ecosur-dark">Su denuncia ha sido recibida</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <p className="text-muted-foreground mb-6">
-                    Guarde su código de seguimiento para consultar el estado de su caso
-                  </p>
-                  <div className="bg-muted p-6 rounded-xl mb-6">
-                    <p className="text-sm text-muted-foreground mb-2">Código de Seguimiento</p>
-                    <p className="text-2xl font-bold text-ecosur-dark font-mono">{trackingCode}</p>
-                  </div>
-
-                  <div className="text-sm text-muted-foreground space-y-2 mb-6">
-                    <p>
-                      Todas las denuncias son gestionadas por nuestro Encargado de Prevención de Delitos según
-                      protocolos establecidos.
-                    </p>
-                  </div>
-
-                  <Button
-                    onClick={() => setIsSubmitted(false)}
-                    className="bg-ecosur-blue hover:bg-ecosur-blue/90 text-white"
-                  >
-                    Realizar otra denuncia
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </section>
-        </main>
-        <Footer />
-      </>
-    )
+  const resetForm = () => {
+    setIsSubmitted(false)
+    setTrackingCode("")
+    form.reset()
+    setFiles([])
   }
 
   return (
@@ -166,314 +130,359 @@ export default function DenunciasPage() {
       <Header />
       <main>
         <PageHeader
-          badge="Ley 20.393"
-          title="Canal de Denuncias"
-          description="Espacio confidencial y seguro para reportar irregularidades"
+          badge="Canal de Denuncias"
+          title="Canal de Denuncias Ley 20.393"
+          description="Sistema seguro y confidencial para reportar irregularidades"
           backgroundImage="/hero-denuncias.jpg"
-          overlayColor="blue"
+          overlayColor="dark"
         />
 
-        {/* Formulario de Denuncia */}
+        {/* Formulario Principal */}
         <section className="py-16 bg-white">
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
             <Card className="shadow-xl border-0">
               <CardHeader className="pb-4">
-                <CardTitle className="text-2xl text-ecosur-dark text-center">Formulario de Denuncia</CardTitle>
+                <CardTitle className="text-2xl text-ecosur-dark text-center">
+                  Formulario de Denuncia
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Banner Importante */}
-                <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-amber-800 mb-1">IMPORTANTE</p>
-                      <p className="text-sm text-amber-700">
-                        Para realizar una denuncia de forma anónima debe incorporar un <strong>seudónimo</strong> en el 
-                        campo correspondiente e incorporar además un <strong>correo electrónico</strong> que no contenga 
-                        datos que puedan identificarlo. El correo electrónico le permitirá realizar un seguimiento del 
-                        proceso asociado a su denuncia.
+                {isSubmitted ? (
+                  // Vista de confirmación
+                  <div className="text-center py-12">
+                    <div className="w-20 h-20 rounded-full bg-ecosur-green/10 flex items-center justify-center mx-auto mb-6">
+                      <CheckCircle2 className="h-12 w-12 text-ecosur-green" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-ecosur-dark mb-3">Denuncia Registrada</h2>
+                    <p className="text-muted-foreground mb-6">Su denuncia ha sido recibida y será procesada de acuerdo a nuestros protocolos.</p>
+
+                    <div className="bg-muted/50 rounded-xl p-6 mb-8 max-w-md mx-auto">
+                      <p className="text-sm text-muted-foreground mb-2">Código de Seguimiento:</p>
+                      <p className="text-2xl font-bold font-mono text-ecosur-dark tracking-wider">{trackingCode}</p>
+                      <p className="text-xs text-muted-foreground mt-3">
+                        Guarde este código para consultar el estado de su denuncia
                       </p>
                     </div>
-                  </div>
-                </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Grid 2 columnas */}
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {/* Correo electrónico */}
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-ecosur-dark">
-                        Correo electrónico <span className="text-red-500">*</span>
-                      </Label>
-                      <Input 
-                        id="email" 
-                        type="email" 
-                        placeholder="correo@ejemplo.com" 
-                        required
-                        className="focus:border-ecosur-green focus:ring-ecosur-green"
-                      />
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 max-w-md mx-auto">
+                      <p className="text-sm text-blue-900">
+                        <strong>Próximos pasos:</strong>
+                      </p>
+                      <ul className="text-sm text-blue-800 mt-2 space-y-1 text-left">
+                        <li>• Su denuncia será revisada en las próximas 24-48 horas</li>
+                        <li>• Recibirá un acuse de recibo por email</li>
+                        <li>• Se mantendrá la confidencialidad del proceso</li>
+                      </ul>
                     </div>
 
-                    {/* Nombre o Seudónimo */}
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-ecosur-dark">
-                        Nombre o Seudónimo <span className="text-red-500">*</span>
-                      </Label>
-                      <Input 
-                        id="name" 
-                        type="text" 
-                        placeholder="Ingrese su nombre o seudónimo" 
-                        required
-                        className="focus:border-ecosur-green focus:ring-ecosur-green"
-                      />
-                    </div>
-
-                    {/* Teléfono */}
-                    <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-ecosur-dark">Teléfono</Label>
-                      <Input 
-                        id="phone" 
-                        type="tel" 
-                        placeholder="+56 9 XXXX XXXX"
-                        className="focus:border-ecosur-green focus:ring-ecosur-green"
-                      />
-                    </div>
-
-                    {/* Relación con ECOSUR */}
-                    <div className="space-y-2">
-                      <Label htmlFor="relation" className="text-ecosur-dark">
-                        ¿Cuál es su relación con ECOSUR? <span className="text-red-500">*</span>
-                      </Label>
-                      <Select required>
-                        <SelectTrigger id="relation" className="focus:border-ecosur-green focus:ring-ecosur-green">
-                          <SelectValue placeholder="Seleccionar..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {relacionesEcosur.map((relacion) => (
-                            <SelectItem key={relacion} value={relacion.toLowerCase()}>
-                              {relacion}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Motivo de denuncia - Full width */}
-                  <div className="space-y-2">
-                    <Label htmlFor="motivo" className="text-ecosur-dark">
-                      Seleccione el motivo de su denuncia: <span className="text-red-500">*</span>
-                    </Label>
-                    <Select required>
-                      <SelectTrigger id="motivo" className="focus:border-ecosur-green focus:ring-ecosur-green">
-                        <SelectValue placeholder="Seleccionar motivo..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {motivosDenuncia.map((motivo) => (
-                          <SelectItem key={motivo} value={motivo.toLowerCase().replace(/\s+/g, "-")}>
-                            {motivo}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Grid 2 columnas: Personas involucradas y Fecha */}
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {/* Personas involucradas */}
-                    <div className="space-y-2">
-                      <Label htmlFor="personas" className="text-ecosur-dark">
-                        ¿Cuántas personas están involucradas?
-                      </Label>
-                      <Input 
-                        id="personas" 
-                        type="number" 
-                        min="1"
-                        placeholder="Número de personas"
-                        className="focus:border-ecosur-green focus:ring-ecosur-green"
-                      />
-                    </div>
-
-                    {/* Fecha de los hechos */}
-                    <div className="space-y-2">
-                      <Label htmlFor="fecha" className="text-ecosur-dark">
-                        ¿Cuándo ocurrieron los hechos?
-                      </Label>
-                      <Input 
-                        id="fecha" 
-                        type="date"
-                        className="focus:border-ecosur-green focus:ring-ecosur-green"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Lugar de los hechos */}
-                  <div className="space-y-2">
-                    <Label htmlFor="lugar" className="text-ecosur-dark">
-                      ¿Dónde ocurrieron los hechos? <span className="text-red-500">*</span>
-                    </Label>
-                    <Input 
-                      id="lugar" 
-                      type="text" 
-                      placeholder="Lugar donde ocurrieron los hechos"
-                      required
-                      className="focus:border-ecosur-green focus:ring-ecosur-green"
-                    />
-                  </div>
-
-                  {/* Hechos denunciados */}
-                  <div className="space-y-2">
-                    <Label htmlFor="hechos" className="text-ecosur-dark">
-                      Hechos denunciados <span className="text-red-500">*</span>
-                    </Label>
-                    <Textarea
-                      id="hechos"
-                      placeholder="Describa detalladamente los hechos que desea denunciar"
-                      rows={8}
-                      required
-                      className="resize-none focus:border-ecosur-green focus:ring-ecosur-green"
-                    />
-                  </div>
-
-                  {/* Adjuntar archivos */}
-                  <div className="space-y-2">
-                    <Label className="text-ecosur-dark">Antecedentes que se adjuntan</Label>
-                    <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-ecosur-green/50 transition-colors bg-muted/20">
-                      <input 
-                        type="file" 
-                        id="files" 
-                        className="hidden" 
-                        multiple
-                        accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
-                        onChange={handleFileChange}
-                      />
-                      <label htmlFor="files" className="cursor-pointer">
-                        <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                        <p className="text-sm font-medium text-ecosur-dark">
-                          Arrastra archivos aquí o haz clic para seleccionar
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Tamaño máximo 10MB por archivo
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Formatos: jpg, jpeg, png, pdf, doc, docx
-                        </p>
-                      </label>
-                    </div>
-                    
-                    {/* Lista de archivos seleccionados */}
-                    {files.length > 0 && (
-                      <div className="mt-3 space-y-2">
-                        {files.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between bg-muted/50 px-3 py-2 rounded-lg">
-                            <span className="text-sm text-ecosur-dark truncate max-w-[80%]">{file.name}</span>
-                            <button 
-                              type="button" 
-                              onClick={() => removeFile(index)}
-                              className="text-muted-foreground hover:text-red-500 transition-colors"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => document.getElementById("files")?.click()}
-                          className="flex items-center gap-1 text-sm text-ecosur-blue hover:text-ecosur-blue/80 transition-colors"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Añadir más
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Captcha placeholder */}
-                  <div className="bg-muted/50 border border-border rounded-lg p-4 flex items-center gap-3">
-                    <div className="w-6 h-6 border-2 border-muted-foreground rounded" />
-                    <span className="text-sm text-muted-foreground">No soy un robot</span>
-                    <div className="ml-auto text-xs text-muted-foreground">reCAPTCHA</div>
-                  </div>
-
-                  {/* Botones de acción */}
-                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
                     <Button
-                      type="button"
+                      onClick={resetForm}
                       variant="outline"
-                      size="lg"
-                      onClick={handleCancel}
-                      className="sm:flex-1 border-gray-300 text-gray-600 hover:bg-gray-50 bg-transparent"
+                      className="border-ecosur-green text-ecosur-green hover:bg-ecosur-green hover:text-white"
                     >
-                      Cancelar
-                    </Button>
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className="sm:flex-1 bg-ecosur-green hover:bg-ecosur-green/90 text-white font-semibold"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <span className="animate-spin mr-2">
-                            <svg className="h-5 w-5" viewBox="0 0 24 24">
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                                fill="none"
-                              />
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                              />
-                            </svg>
-                          </span>
-                          Enviando...
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="mr-2 h-5 w-5" />
-                          Enviar Denuncia
-                        </>
-                      )}
+                      Realizar otra denuncia
                     </Button>
                   </div>
-                </form>
+                ) : (
+                  <>
+                    {/* Banner informativo */}
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="text-sm text-amber-900">
+                        <p className="font-semibold mb-1">Cómo mantener tu anonimato:</p>
+                        <p>
+                          Puedes usar un seudónimo en lugar de tu nombre real y crear un email anónimo
+                          (ej: ProtonMail, Tutanota) para preservar tu identidad.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Formulario */}
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                        {/* Grid de campos básicos */}
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel htmlFor="email">Correo electrónico *</FormLabel>
+                                <FormControl>
+                                  <Input id="email" type="email" placeholder="correo@ejemplo.com" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="nombre"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel htmlFor="nombre">Nombre o Seudónimo *</FormLabel>
+                                <FormControl>
+                                  <Input id="nombre" placeholder="Ingrese su nombre o seudónimo" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="relacion"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel htmlFor="relacion">Relación con ECOSUR *</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger id="relacion">
+                                      <SelectValue placeholder="Seleccione una opción" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {relacionesEcosur.map((relacion) => (
+                                      <SelectItem key={relacion} value={relacion}>
+                                        {relacion}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="motivo"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel htmlFor="motivo">Motivo de denuncia *</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger id="motivo">
+                                      <SelectValue placeholder="Seleccione el motivo" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {motivosDenuncia.map((motivo) => (
+                                      <SelectItem key={motivo} value={motivo}>
+                                        {motivo}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="telefono"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel htmlFor="telefono">Teléfono (opcional)</FormLabel>
+                                <FormControl>
+                                  <Input id="telefono" type="tel" placeholder="+56 9 XXXX XXXX" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="personas"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel htmlFor="personas">Cantidad de personas involucradas (opcional)</FormLabel>
+                                <FormControl>
+                                  <Input id="personas" type="number" min="1" placeholder="Ej: 2" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="fecha"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel htmlFor="fecha">Fecha de los hechos (opcional)</FormLabel>
+                                <FormControl>
+                                  <Input id="fecha" type="date" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="lugar"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel htmlFor="lugar">Lugar de los hechos *</FormLabel>
+                                <FormControl>
+                                  <Input id="lugar" placeholder="Ej: Planta Concepción" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        {/* Campo de texto largo */}
+                        <FormField
+                          control={form.control}
+                          name="hechos"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel htmlFor="hechos">Descripción de los hechos denunciados *</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  id="hechos"
+                                  placeholder="Describa detalladamente los hechos que desea denunciar"
+                                  rows={8}
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Upload de archivos */}
+                        <div>
+                          <p className="text-sm font-medium mb-2">Antecedentes que se adjuntan (opcional)</p>
+                          <div className="mt-2">
+                            <FileUpload
+                              files={files}
+                              onChange={setFiles}
+                              maxFiles={5}
+                              maxSize={10 * 1024 * 1024}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Botones de acción */}
+                        <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="lg"
+                            onClick={() => navigate("/")}
+                            className="sm:flex-1"
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            type="submit"
+                            size="lg"
+                            className="sm:flex-1 bg-ecosur-green hover:bg-ecosur-green/90 text-white font-semibold"
+                            disabled={isSubmitting}
+                          >
+                            {isSubmitting ? (
+                              <>
+                                <span className="animate-spin mr-2">⏳</span>
+                                Enviando...
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="mr-2 h-5 w-5" />
+                                Enviar Denuncia
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
         </section>
 
-        {/* Garantías */}
-        <section className="py-12 bg-ecosur-blue/5">
-          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {guarantees.map((item) => (
-                <div key={item.title} className="text-center p-4">
-                  <div className="mx-auto w-12 h-12 rounded-full bg-ecosur-blue/10 flex items-center justify-center mb-3">
-                    <item.icon className="h-6 w-6 text-ecosur-blue" />
-                  </div>
-                  <h3 className="font-semibold text-ecosur-dark text-sm mb-1">{item.title}</h3>
-                  <p className="text-xs text-muted-foreground">{item.description}</p>
-                </div>
-              ))}
+        {/* Garantías del Canal */}
+        <section className="py-16 bg-muted/30">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-ecosur-dark mb-4">Nuestras Garantías</h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Comprometidos con un proceso transparente y justo
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {guarantees.map((guarantee, index) => {
+                const Icon = guarantee.icon
+                return (
+                  <Card key={index} className="text-center shadow-lg hover:shadow-xl transition-shadow">
+                    <CardContent className="pt-8 pb-6">
+                      <div className="w-16 h-16 rounded-full bg-ecosur-green/10 flex items-center justify-center mx-auto mb-4">
+                        <Icon className="h-8 w-8 text-ecosur-green" />
+                      </div>
+                      <h3 className="font-semibold text-ecosur-dark mb-2">{guarantee.title}</h3>
+                      <p className="text-sm text-muted-foreground">{guarantee.description}</p>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           </div>
         </section>
 
-        {/* Contacto alternativo */}
-        <section className="py-8 bg-white">
-          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-            <p className="text-muted-foreground">
-              También puede enviar su denuncia directamente a:{" "}
-              <a href="mailto:denuncias@ecosurspa.com" className="text-ecosur-blue font-semibold hover:underline">
-                denuncias@ecosurspa.com
-              </a>
-            </p>
+        {/* Contacto Alternativo */}
+        <section className="py-16 bg-white">
+          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+            <Card className="border-ecosur-blue/20">
+              <CardHeader>
+                <CardTitle className="text-xl text-ecosur-dark">Canales Alternativos de Contacto</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground">
+                  Si prefieres realizar tu denuncia por otro medio, también puedes contactarnos a través de:
+                </p>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg">
+                    <Mail className="h-5 w-5 text-ecosur-blue shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-ecosur-dark text-sm">Email</p>
+                      <a
+                        href="mailto:denuncias@ecosurspa.com"
+                        className="text-sm text-ecosur-blue hover:underline"
+                      >
+                        denuncias@ecosurspa.com
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg">
+                    <Phone className="h-5 w-5 text-ecosur-blue shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-ecosur-dark text-sm">Teléfono</p>
+                      <a href="tel:+56412460097" className="text-sm text-ecosur-blue hover:underline">
+                        +56 41 2460097
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                  <p className="text-sm text-blue-900">
+                    <strong>Nota importante:</strong> Todas las denuncias son tratadas con estricta confidencialidad
+                    de acuerdo a la Ley 20.393 sobre Responsabilidad Penal de las Personas Jurídicas.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </section>
       </main>
