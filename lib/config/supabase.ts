@@ -3,11 +3,19 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Faltan variables de entorno de Supabase. Verifica VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en .env.local')
-}
+// Crear cliente de Supabase solo si las variables están disponibles
+// Esto permite que páginas que no usan Supabase funcionen sin problemas
+export const supabase = (supabaseUrl && supabaseKey)
+  ? createClient(supabaseUrl, supabaseKey)
+  : null
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+// Helper para verificar que Supabase está configurado
+function ensureSupabaseConfigured() {
+  if (!supabase) {
+    throw new Error('Supabase no está configurado. Verifica VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY')
+  }
+  return supabase
+}
 
 /**
  * Sube archivos al bucket de denuncias en Supabase Storage
@@ -15,6 +23,8 @@ export const supabase = createClient(supabaseUrl, supabaseKey)
  * @returns Array de URLs públicas de los archivos subidos
  */
 export async function uploadDenunciaFiles(files: File[]): Promise<{ url: string; name: string }[]> {
+  const client = ensureSupabaseConfigured()
+
   const uploadPromises = files.map(async (file) => {
     // Generar nombre único para evitar colisiones
     const timestamp = Date.now()
@@ -23,7 +33,7 @@ export async function uploadDenunciaFiles(files: File[]): Promise<{ url: string;
     const uniqueFileName = `${timestamp}-${random}.${fileExtension}`
 
     // Subir archivo a Supabase Storage
-    const { data, error } = await supabase.storage
+    const { data, error } = await client.storage
       .from('denuncias-ecosur')
       .upload(uniqueFileName, file, {
         cacheControl: '3600',
@@ -36,7 +46,7 @@ export async function uploadDenunciaFiles(files: File[]): Promise<{ url: string;
     }
 
     // Obtener URL pública
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = client.storage
       .from('denuncias-ecosur')
       .getPublicUrl(uniqueFileName)
 
