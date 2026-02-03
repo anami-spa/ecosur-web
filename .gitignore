@@ -56,3 +56,6 @@ out/
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Sesiones de desarrollo (documentación local)
+.sessions/
