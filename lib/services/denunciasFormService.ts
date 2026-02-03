@@ -39,8 +39,12 @@ export async function submitDenunciaForm(
     // Código de seguimiento (importante para auto-responder)
     formData.append('tracking_code', trackingCode)
 
-    // Datos del formulario
+    // Datos del formulario (campos requeridos por Web3Forms)
+    formData.append('name', data.nombre) // Campo requerido por Web3Forms
     formData.append('email', data.email)
+    formData.append('message', data.hechos) // Campo requerido: descripción de los hechos
+
+    // Campos personalizados adicionales
     formData.append('nombre', data.nombre)
     formData.append('relacion', data.relacion)
     formData.append('motivo', data.motivo)
