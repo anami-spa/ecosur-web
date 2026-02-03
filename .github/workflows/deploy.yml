@@ -30,6 +30,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Debug environment variables
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_WEB3FORMS_CONTACTO_KEY: ${{ secrets.VITE_WEB3FORMS_CONTACTO_KEY }}
+          VITE_WEB3FORMS_DENUNCIAS_KEY: ${{ secrets.VITE_WEB3FORMS_DENUNCIAS_KEY }}
+        run: |
+          echo "Verificando variables de entorno..."
+          echo "VITE_SUPABASE_URL está configurada: ${{ secrets.VITE_SUPABASE_URL != '' }}"
+          echo "VITE_WEB3FORMS_CONTACTO_KEY está configurada: ${{ secrets.VITE_WEB3FORMS_CONTACTO_KEY != '' }}"
+
       - name: Build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
